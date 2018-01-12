@@ -6,6 +6,7 @@ We need an HTTP server that will accept any POST request (JSON) from muliple cli
 
 For the JS part of the test please feel free to use any libraries that may help you **but please only use the Go standard library for the backend**.
 
+
 ## Frontend (JS)
 Insert JavaScript into the index.html (supplied) that captures and posts data every time one of the below events happens; this means you will be posting multiple times per visitor. Assume only one resize occurs.
 
@@ -14,7 +15,7 @@ Insert JavaScript into the index.html (supplied) that captures and posts data ev
   - time taken from the 1st character typed to clicking the submit button
 
 ### Example JSON Requests
-```
+```javascript
 {
   "eventType": "copyAndPaste",
   "websiteUrl": "https://ravelin.com",
@@ -42,9 +43,10 @@ We've supplied a starter server in the /server directory. You can run the server
 2. Map the JSON requests to relevant sections of the data struct (specified below)
 3. Print the struct for each stage of its construction
 4. Also print the struct when it is complete (i.e. when the form submit button has been clicked)
+5. Be able to handle concurrent requests. i.e. Two clients sending different forms at the same time
 
 ### Go Struct
-```
+```go
 type Data struct {
 	WebsiteUrl         string
 	SessionId          string
