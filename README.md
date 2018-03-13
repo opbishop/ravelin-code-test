@@ -4,7 +4,7 @@ Ravelin Code Test
 ## Summary
 We need an HTTP server that will accept any POST request (JSON) from multiple clients' websites. Each request forms part of a struct (for that particular visitor) that will be printed to the terminal when the struct is fully complete. 
 
-For the JS part of the test please feel free to use any libraries that may help you **but please only use the Go standard library for the backend** and keep things simple.
+For the JS part of the test please feel free to use any libraries that may help you **but please only use the Go standard library for the backend**. Remember to keep things simple.
 
 ## Frontend (JS)
 Insert JavaScript into the index.html (supplied) that captures and posts data every time one of the below events happens; this means you will be posting multiple times per visitor. Assume only one resize occurs.
