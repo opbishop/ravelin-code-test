@@ -43,7 +43,9 @@ The Backend must to:
 3. Map the JSON requests to relevant sections of the data struct (specified below)
 4. Print the struct for each stage of its construction
 5. Also print the struct when it is complete (i.e. when the form submit button has been clicked)
-6. Write a simple hashing function, that given a string will calculate a hash of that string
+6. Write a simple hashing function (your implementation - either of
+   your own design or a known algorithm), that given a string will
+   calculate a hash of that string
 7. Use that function to calculate the hash of the `WebSiteurl` field and print the hash.
 
 ### Go Struct
