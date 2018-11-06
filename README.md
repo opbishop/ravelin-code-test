@@ -36,6 +36,8 @@ Insert JavaScript into the index.html (supplied) that captures and posts data ev
 
 ## Backend (Go)
 
+### Part 1
+
 The Backend must to:
 
 1. Create a Server
@@ -43,10 +45,14 @@ The Backend must to:
 3. Map the JSON requests to relevant sections of the data struct (specified below)
 4. Print the struct for each stage of its construction
 5. Also print the struct when it is complete (i.e. when the form submit button has been clicked)
+
+### Part 2
+
 6. Write a simple hashing function (your implementation - either of
    your own design or a known algorithm), that given a string will
    calculate a hash of that string
-7. Use that function to calculate the hash of the `WebSiteurl` field and print the hash.
+7. Use that function to calculate the hash of the `WebSiteurl` field
+   and print the hash, and print out the hash once calculated.
 
 ### Go Struct
 ```go
