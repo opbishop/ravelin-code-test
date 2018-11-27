@@ -38,7 +38,7 @@ Insert JavaScript into the index.html (supplied) that captures and posts data ev
 
 ### Part 1
 
-The Backend must to:
+The Backend should:
 
 1. Create a Server
 2. Accept POST requests in JSON format similar to those specified above
@@ -50,7 +50,8 @@ The Backend must to:
 
 6. Write a simple hashing function (your implementation - either of
    your own design or a known algorithm), that given a string will
-   calculate a hash of that string
+   calculate a hash of that string.  We are not looking for you to
+   wrap a standard function, but to provide the implementation itself.
 7. Use that function to calculate the hash of the `WebSiteurl` field
    and print the hash, and print out the hash once calculated.
 
