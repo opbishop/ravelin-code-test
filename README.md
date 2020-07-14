@@ -45,7 +45,7 @@ The Backend should:
 5. Also print the struct when it is complete (i.e. when the form submit button has been clicked)
 
 We would like the server to be written to handle multiple requests arriving on
-the same session at the same time. We'd also like to see some Go tests.
+the same session at the same time. We'd also like to see some tests.
 
 
 ### Go Struct
