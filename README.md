@@ -36,8 +36,6 @@ Insert JavaScript into the index.html (supplied) that captures and posts data ev
 
 ## Backend (Go)
 
-### Part 1
-
 The Backend should:
 
 1. Create a Server
@@ -46,14 +44,9 @@ The Backend should:
 4. Print the struct for each stage of its construction
 5. Also print the struct when it is complete (i.e. when the form submit button has been clicked)
 
-### Part 2
+We would like the server to be written to handle multiple requests arriving on
+the same session at the same time. We'd also like to see some Go tests.
 
-6. Write a simple hashing function (your implementation - either of
-   your own design or a known algorithm), that given a string will
-   calculate a hash of that string.  We are not looking for you to
-   wrap a standard function, but to provide the implementation itself.
-7. Use that function to calculate the hash of the `WebSiteurl` field
-   and print the hash, and print out the hash once calculated.
 
 ### Go Struct
 ```go
