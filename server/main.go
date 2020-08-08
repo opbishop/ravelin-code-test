@@ -52,9 +52,16 @@ type ResizeEvent struct {
 }
 
 func handleResizeEvent(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "OPTIONS" {
+		handleCORS(w)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	handleCORS(w)
+
 	reqBody, _ := ioutil.ReadAll(r.Body)
 	fmt.Println("New resize event")
-	//fmt.Println(string(reqBody))
+	fmt.Println(string(reqBody))
 
 	var event ResizeEvent
 	err := json.Unmarshal(reqBody, &event)
@@ -79,6 +86,13 @@ type CopyPasteEvent struct {
 }
 
 func handleCopyPasteEvent(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "OPTIONS" {
+		handleCORS(w)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	handleCORS(w)
+
 	reqBody, _ := ioutil.ReadAll(r.Body)
 	fmt.Println("New copy-paste event")
 	//fmt.Println(string(reqBody))
@@ -104,9 +118,16 @@ type TimerEvent struct {
 }
 
 func handleTimerEvent(w http.ResponseWriter, r *http.Request){
+	if r.Method == "OPTIONS" {
+		handleCORS(w)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	handleCORS(w)
+
 	reqBody, _ := ioutil.ReadAll(r.Body)
 	fmt.Println("New timer event")
-	//fmt.Println(string(reqBody))
+	fmt.Println(string(reqBody))
 
 	var event TimerEvent
 	err := json.Unmarshal(reqBody, &event)
@@ -121,6 +142,14 @@ func handleTimerEvent(w http.ResponseWriter, r *http.Request){
 
 	db[event.SessionId] = record
 	fmt.Println(record)
+}
+
+func handleCORS(w http.ResponseWriter){
+	header := w.Header()
+	header.Add("Access-Control-Allow-Origin", "*")
+	header.Add("Access-Control-Allow-Methods", "POST, OPTIONS")
+	header.Add("Access-Control-Allow-Headers", "Content-Type")
+
 }
 
 func handleRequests() {
