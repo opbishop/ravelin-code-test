@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-
 )
 
 type Data struct {
@@ -29,14 +28,6 @@ type TrackingEvent struct {
 	EventType string `json:"eventType"`
 }
 
-type ResizeEvent struct {
-	*TrackingEvent
-	OldWidth  string `json:"oldWidth"`
-	OldHeight string `json:"oldHeight"`
-	NewWidth  string `json:"newWidth"`
-	NewHeight string `json:"newHeight"`
-}
-
 func getRecord(sessionId string, websiteUrl string) Data {
 	if record, exist := db[sessionId]; exist {
 		return record
@@ -52,60 +43,84 @@ func createDim(height string, width string) Dimension {
 	}
 }
 
+type ResizeEvent struct {
+	TrackingEvent
+	OldWidth  string `json:"oldWidth"`
+	OldHeight string `json:"oldHeight"`
+	NewWidth  string `json:"newWidth"`
+	NewHeight string `json:"newHeight"`
+}
+
 func handleResizeEvent(w http.ResponseWriter, r *http.Request) {
 	reqBody, _ := ioutil.ReadAll(r.Body)
 	fmt.Println("New resize event")
-	fmt.Println(string(reqBody))
+	//fmt.Println(string(reqBody))
 
 	var event ResizeEvent
-	json.Unmarshal(reqBody, &event)
+	err := json.Unmarshal(reqBody, &event)
+	if err != nil{
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
 
-	record := db[event.SessionId]
+	record := getRecord(event.SessionId, event.WebsiteUrl)
 	record.ResizeFrom = createDim(event.OldHeight, event.OldWidth)
 	record.ResizeTo = createDim(event.NewHeight, event.NewWidth)
 
 	db[event.SessionId] = record
-
+	fmt.Println(record)
 }
 
 type CopyPasteEvent struct {
-	*TrackingEvent
+	TrackingEvent
 	Pasted    bool   `json:"pasted"`
-	FormId    string `json:"inputCardNumber"`
+	FormId    string `json:"formId"`
 }
 
 func handleCopyPasteEvent(w http.ResponseWriter, r *http.Request) {
 	reqBody, _ := ioutil.ReadAll(r.Body)
 	fmt.Println("New copy-paste event")
-	fmt.Println(string(reqBody))
+	//fmt.Println(string(reqBody))
 
 	var event CopyPasteEvent
-	json.Unmarshal(reqBody, &event)
+	err := json.Unmarshal(reqBody, &event)
+	if err != nil{
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
 
 	record := getRecord(event.SessionId, event.WebsiteUrl)
 	record.CopyAndPaste[event.FormId] = event.Pasted
 
 	db[event.SessionId] = record
+	fmt.Println(record)
 }
 
-
 type TimerEvent struct {
-	*TrackingEvent
+	TrackingEvent
 	Time int `json:"time"`
 }
 
 func handleTimerEvent(w http.ResponseWriter, r *http.Request){
 	reqBody, _ := ioutil.ReadAll(r.Body)
-	fmt.Println("New copy-paste event")
-	fmt.Println(string(reqBody))
+	fmt.Println("New timer event")
+	//fmt.Println(string(reqBody))
 
 	var event TimerEvent
-	json.Unmarshal(reqBody, &event)
+	err := json.Unmarshal(reqBody, &event)
+	if err != nil{
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
 
 	record := getRecord(event.SessionId, event.WebsiteUrl)
 	record.FormCompletionTime = event.Time
 
 	db[event.SessionId] = record
+	fmt.Println(record)
 }
 
 func handleRequests() {
