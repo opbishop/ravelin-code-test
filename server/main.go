@@ -8,25 +8,6 @@ import (
 	"net/http"
 )
 
-type Data struct {
-	WebsiteUrl         string
-	SessionId          string
-	ResizeFrom         Dimension
-	ResizeTo           Dimension
-	CopyAndPaste       map[string]bool // map[fieldId]true
-	FormCompletionTime int             // Seconds
-}
-
-type Dimension struct {
-	Width  string
-	Height string
-}
-
-type TrackingEvent interface {
-	EventType() string
-
-}
-
 func getRecord(sessionId string, websiteUrl string) *Data {
 	if record, exist := db[sessionId]; exist {
 		return &record
@@ -42,26 +23,13 @@ func createDim(height string, width string) Dimension {
 	}
 }
 
-type ResizeEvent struct {
-	WebsiteUrl string `json:"websiteUrl"`
-	SessionId  string `json:"sessionId"`
-	OldWidth  string `json:"oldWidth"`
-	OldHeight string `json:"oldHeight"`
-	NewWidth  string `json:"newWidth"`
-	NewHeight string `json:"newHeight"`
-}
-
-func (t ResizeEvent) EventType() string {
-	return "resizeEvent"
-}
-
 func handleResizeEvent(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "OPTIONS" {
-		handleCORS(w)
+		addCorsHeaders(w)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	handleCORS(w)
+	addCorsHeaders(w)
 
 	reqBody, _ := ioutil.ReadAll(r.Body)
 	fmt.Println("New resize event")
@@ -69,7 +37,7 @@ func handleResizeEvent(w http.ResponseWriter, r *http.Request) {
 
 	var event ResizeEvent
 	err := json.Unmarshal(reqBody, &event)
-	if err != nil{
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
 		return
@@ -79,24 +47,13 @@ func handleResizeEvent(w http.ResponseWriter, r *http.Request) {
 	c <- te
 }
 
-type CopyPasteEvent struct {
-	WebsiteUrl string `json:"websiteUrl"`
-	SessionId  string `json:"sessionId"`
-	Pasted    bool   `json:"pasted"`
-	FormId    string `json:"formId"`
-}
-
-func (t CopyPasteEvent) EventType() string {
-	return "pasteEvent"
-}
-
 func handleCopyPasteEvent(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "OPTIONS" {
-		handleCORS(w)
+		addCorsHeaders(w)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	handleCORS(w)
+	addCorsHeaders(w)
 
 	reqBody, _ := ioutil.ReadAll(r.Body)
 	fmt.Println("New copy-paste event")
@@ -104,7 +61,7 @@ func handleCopyPasteEvent(w http.ResponseWriter, r *http.Request) {
 
 	var event CopyPasteEvent
 	err := json.Unmarshal(reqBody, &event)
-	if err != nil{
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
 		return
@@ -114,23 +71,13 @@ func handleCopyPasteEvent(w http.ResponseWriter, r *http.Request) {
 	c <- te
 }
 
-type TimerEvent struct {
-	WebsiteUrl string `json:"websiteUrl"`
-	SessionId  string `json:"sessionId"`
-	Time int `json:"time"`
-}
-
-func (t TimerEvent) EventType() string {
-	return "timerEvent"
-}
-
-func handleTimerEvent(w http.ResponseWriter, r *http.Request){
+func handleTimerEvent(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "OPTIONS" {
-		handleCORS(w)
+		addCorsHeaders(w)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	handleCORS(w)
+	addCorsHeaders(w)
 
 	reqBody, _ := ioutil.ReadAll(r.Body)
 	fmt.Println("New timer event")
@@ -138,7 +85,7 @@ func handleTimerEvent(w http.ResponseWriter, r *http.Request){
 
 	var event TimerEvent
 	err := json.Unmarshal(reqBody, &event)
-	if err != nil{
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
 		return
@@ -148,7 +95,7 @@ func handleTimerEvent(w http.ResponseWriter, r *http.Request){
 	c <- te
 }
 
-func handleCORS(w http.ResponseWriter){
+func addCorsHeaders(w http.ResponseWriter) {
 	header := w.Header()
 	header.Add("Access-Control-Allow-Origin", "*")
 	header.Add("Access-Control-Allow-Methods", "POST, OPTIONS")
@@ -163,14 +110,11 @@ func handleRequests() {
 	log.Fatal(http.ListenAndServe(":10000", nil))
 }
 
-// data structure to hold Data structs as they are completed
-// maps SessionId (string): Data struct object
-var db map[string]Data
-var c chan TrackingEvent
-
-func processEvents(){
+// goroutine to process events from the channel
+// allows handling of multiple POST requests at once
+func processEvents() {
 	for range c {
-		trackingEvent := <- c
+		trackingEvent := <-c
 
 		switch trackingEvent.EventType() {
 		case "resizeEvent":
@@ -201,6 +145,10 @@ func processEvents(){
 
 }
 
+// data structure to hold Data structs as they are completed
+// maps SessionId (string): Data struct object
+var db map[string]Data
+var c chan TrackingEvent
 
 func main() {
 	db = make(map[string]Data)
