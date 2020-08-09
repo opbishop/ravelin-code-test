@@ -22,17 +22,16 @@ type Dimension struct {
 	Height string
 }
 
-type TrackingEvent struct {
-	WebsiteUrl string `json:"websiteUrl"`
-	SessionId  string `json:"sessionId"`
-	EventType string `json:"eventType"`
+type TrackingEvent interface {
+	EventType() string
+
 }
 
-func getRecord(sessionId string, websiteUrl string) Data {
+func getRecord(sessionId string, websiteUrl string) *Data {
 	if record, exist := db[sessionId]; exist {
-		return record
+		return &record
 	} else {
-		return Data{WebsiteUrl: websiteUrl, SessionId: sessionId, CopyAndPaste: make(map[string]bool)}
+		return &Data{WebsiteUrl: websiteUrl, SessionId: sessionId, CopyAndPaste: make(map[string]bool)}
 	}
 }
 
@@ -44,11 +43,16 @@ func createDim(height string, width string) Dimension {
 }
 
 type ResizeEvent struct {
-	TrackingEvent
+	WebsiteUrl string `json:"websiteUrl"`
+	SessionId  string `json:"sessionId"`
 	OldWidth  string `json:"oldWidth"`
 	OldHeight string `json:"oldHeight"`
 	NewWidth  string `json:"newWidth"`
 	NewHeight string `json:"newHeight"`
+}
+
+func (t ResizeEvent) EventType() string {
+	return "resizeEvent"
 }
 
 func handleResizeEvent(w http.ResponseWriter, r *http.Request) {
@@ -71,18 +75,19 @@ func handleResizeEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	record := getRecord(event.SessionId, event.WebsiteUrl)
-	record.ResizeFrom = createDim(event.OldHeight, event.OldWidth)
-	record.ResizeTo = createDim(event.NewHeight, event.NewWidth)
-
-	db[event.SessionId] = record
-	fmt.Println(record)
+	te := TrackingEvent(event)
+	c <- te
 }
 
 type CopyPasteEvent struct {
-	TrackingEvent
+	WebsiteUrl string `json:"websiteUrl"`
+	SessionId  string `json:"sessionId"`
 	Pasted    bool   `json:"pasted"`
 	FormId    string `json:"formId"`
+}
+
+func (t CopyPasteEvent) EventType() string {
+	return "pasteEvent"
 }
 
 func handleCopyPasteEvent(w http.ResponseWriter, r *http.Request) {
@@ -105,16 +110,18 @@ func handleCopyPasteEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	record := getRecord(event.SessionId, event.WebsiteUrl)
-	record.CopyAndPaste[event.FormId] = event.Pasted
-
-	db[event.SessionId] = record
-	fmt.Println(record)
+	te := TrackingEvent(event)
+	c <- te
 }
 
 type TimerEvent struct {
-	TrackingEvent
+	WebsiteUrl string `json:"websiteUrl"`
+	SessionId  string `json:"sessionId"`
 	Time int `json:"time"`
+}
+
+func (t TimerEvent) EventType() string {
+	return "timerEvent"
 }
 
 func handleTimerEvent(w http.ResponseWriter, r *http.Request){
@@ -137,11 +144,8 @@ func handleTimerEvent(w http.ResponseWriter, r *http.Request){
 		return
 	}
 
-	record := getRecord(event.SessionId, event.WebsiteUrl)
-	record.FormCompletionTime = event.Time
-
-	db[event.SessionId] = record
-	fmt.Println(record)
+	te := TrackingEvent(event)
+	c <- te
 }
 
 func handleCORS(w http.ResponseWriter){
@@ -162,8 +166,45 @@ func handleRequests() {
 // data structure to hold Data structs as they are completed
 // maps SessionId (string): Data struct object
 var db map[string]Data
+var c chan TrackingEvent
+
+func processEvents(){
+	for range c {
+		trackingEvent := <- c
+
+		switch trackingEvent.EventType() {
+		case "resizeEvent":
+			resizeEvent := trackingEvent.(ResizeEvent)
+			record := getRecord(resizeEvent.SessionId, resizeEvent.WebsiteUrl)
+			record.ResizeFrom = createDim(resizeEvent.OldHeight, resizeEvent.OldWidth)
+			record.ResizeTo = createDim(resizeEvent.NewHeight, resizeEvent.NewWidth)
+
+			db[resizeEvent.SessionId] = *record
+			fmt.Println(record)
+		case "pasteEvent":
+			pasteEvent := trackingEvent.(CopyPasteEvent)
+			record := getRecord(pasteEvent.SessionId, pasteEvent.WebsiteUrl)
+			record.CopyAndPaste[pasteEvent.FormId] = pasteEvent.Pasted
+
+			db[pasteEvent.SessionId] = *record
+			fmt.Println(record)
+		case "timerEvent":
+			timerEvent := trackingEvent.(TimerEvent)
+			record := getRecord(timerEvent.SessionId, timerEvent.WebsiteUrl)
+			record.FormCompletionTime = timerEvent.Time
+
+			db[timerEvent.SessionId] = *record
+			fmt.Println(record)
+		}
+
+	}
+
+}
+
 
 func main() {
 	db = make(map[string]Data)
+	c = make(chan TrackingEvent, 10)
+	go processEvents()
 	handleRequests()
 }
