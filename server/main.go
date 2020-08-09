@@ -30,6 +30,7 @@ func handleRequests() {
 
 func addCorsHeaders(w http.ResponseWriter) {
 	header := w.Header()
+	// TODO don't push to production (obviously)
 	header.Add("Access-Control-Allow-Origin", "*")
 	header.Add("Access-Control-Allow-Methods", "POST, OPTIONS")
 	header.Add("Access-Control-Allow-Headers", "Content-Type")
@@ -57,7 +58,10 @@ func handleResizeEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	te := TrackingEvent(event)
-	c <- te
+	select {
+	case c <- te:
+	default:
+	}
 }
 
 func handleCopyPasteEvent(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +85,10 @@ func handleCopyPasteEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	te := TrackingEvent(event)
-	c <- te
+	select {
+	case c <- te:
+	default:
+	}
 }
 
 func handleTimerEvent(w http.ResponseWriter, r *http.Request) {
@@ -105,7 +112,12 @@ func handleTimerEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	te := TrackingEvent(event)
-	c <- te
+
+	select {
+	case c <- te:
+	default:
+	}
+
 }
 
 func getRecord(sessionId string, websiteUrl string) *Data {
