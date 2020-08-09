@@ -8,19 +8,32 @@ import (
 	"net/http"
 )
 
-func getRecord(sessionId string, websiteUrl string) *Data {
-	if record, exist := db[sessionId]; exist {
-		return &record
-	} else {
-		return &Data{WebsiteUrl: websiteUrl, SessionId: sessionId, CopyAndPaste: make(map[string]bool)}
-	}
+// data structure to hold Data structs as they are completed
+// maps SessionId (string): Data struct object
+var db map[string]Data
+var c chan TrackingEvent
+
+func main() {
+	db = make(map[string]Data)
+	c = make(chan TrackingEvent, 10)
+	go processEvents()
+	handleRequests()
 }
 
-func createDim(height string, width string) Dimension {
-	return Dimension{
-		Width:  width,
-		Height: height,
-	}
+// set up API routes for POST requests
+func handleRequests() {
+	http.HandleFunc("/resize", handleResizeEvent)
+	http.HandleFunc("/copypaste", handleCopyPasteEvent)
+	http.HandleFunc("/timer", handleTimerEvent)
+	log.Fatal(http.ListenAndServe(":10000", nil))
+}
+
+func addCorsHeaders(w http.ResponseWriter) {
+	header := w.Header()
+	header.Add("Access-Control-Allow-Origin", "*")
+	header.Add("Access-Control-Allow-Methods", "POST, OPTIONS")
+	header.Add("Access-Control-Allow-Headers", "Content-Type")
+
 }
 
 func handleResizeEvent(w http.ResponseWriter, r *http.Request) {
@@ -95,19 +108,19 @@ func handleTimerEvent(w http.ResponseWriter, r *http.Request) {
 	c <- te
 }
 
-func addCorsHeaders(w http.ResponseWriter) {
-	header := w.Header()
-	header.Add("Access-Control-Allow-Origin", "*")
-	header.Add("Access-Control-Allow-Methods", "POST, OPTIONS")
-	header.Add("Access-Control-Allow-Headers", "Content-Type")
-
+func getRecord(sessionId string, websiteUrl string) *Data {
+	if record, exist := db[sessionId]; exist {
+		return &record
+	} else {
+		return &Data{WebsiteUrl: websiteUrl, SessionId: sessionId, CopyAndPaste: make(map[string]bool)}
+	}
 }
 
-func handleRequests() {
-	http.HandleFunc("/resize", handleResizeEvent)
-	http.HandleFunc("/copypaste", handleCopyPasteEvent)
-	http.HandleFunc("/timer", handleTimerEvent)
-	log.Fatal(http.ListenAndServe(":10000", nil))
+func createDim(height string, width string) Dimension {
+	return Dimension{
+		Width:  width,
+		Height: height,
+	}
 }
 
 // goroutine to process events from the channel
@@ -143,16 +156,4 @@ func processEvents() {
 
 	}
 
-}
-
-// data structure to hold Data structs as they are completed
-// maps SessionId (string): Data struct object
-var db map[string]Data
-var c chan TrackingEvent
-
-func main() {
-	db = make(map[string]Data)
-	c = make(chan TrackingEvent, 10)
-	go processEvents()
-	handleRequests()
 }
