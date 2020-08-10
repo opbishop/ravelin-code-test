@@ -10,11 +10,10 @@ import (
 
 // data structure to hold Data structs as they are completed
 // maps SessionId (string): Data struct object
-var queue chan TrackingEvent
+var queue = make(chan TrackingEvent, 10)
 
 func main() {
 	db := make(map[string]Data)
-	queue = make(chan TrackingEvent, 10)
 	go processEvents(db, queue)
 	handleRequests()
 }
@@ -36,7 +35,7 @@ func addCorsHeaders(w http.ResponseWriter) {
 
 }
 
-func addBadRequestHeader(w http.ResponseWriter, err error){
+func addBadRequestHeader(w http.ResponseWriter, err error) {
 	w.WriteHeader(http.StatusBadRequest)
 	w.Write([]byte(err.Error()))
 }
@@ -50,8 +49,6 @@ func handleResizeEvent(w http.ResponseWriter, r *http.Request) {
 	addCorsHeaders(w)
 
 	reqBody, _ := ioutil.ReadAll(r.Body)
-	fmt.Println("New resize event")
-	fmt.Println(string(reqBody))
 
 	var event ResizeEvent
 	err := json.Unmarshal(reqBody, &event)
@@ -60,9 +57,11 @@ func handleResizeEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	te := TrackingEvent(event)
+
 	select {
 	case queue <- te:
 	default:
+		fmt.Print("Unable to send resize event")
 	}
 }
 
@@ -86,6 +85,7 @@ func handleCopyPasteEvent(w http.ResponseWriter, r *http.Request) {
 	select {
 	case queue <- te:
 	default:
+		fmt.Print("Unable to send paste event")
 	}
 }
 
@@ -98,8 +98,6 @@ func handleTimerEvent(w http.ResponseWriter, r *http.Request) {
 	addCorsHeaders(w)
 
 	reqBody, _ := ioutil.ReadAll(r.Body)
-	fmt.Println("New timer event")
-	fmt.Println(string(reqBody))
 
 	var event TimerEvent
 	err := json.Unmarshal(reqBody, &event)
@@ -112,6 +110,7 @@ func handleTimerEvent(w http.ResponseWriter, r *http.Request) {
 	select {
 	case queue <- te:
 	default:
+		fmt.Print("Unable to send timer event")
 	}
 
 }
@@ -134,33 +133,34 @@ func createDim(height string, width string) Dimension {
 // goroutine to process events from the channel
 // allows handling of multiple POST requests at once
 func processEvents(db map[string]Data, queue chan TrackingEvent) {
-	select {
-	case trackingEvent := <- queue:
-		switch trackingEvent.EventType() {
-		case "resizeEvent":
-			resizeEvent := trackingEvent.(ResizeEvent)
-			record := getRecord(db, resizeEvent.SessionId, resizeEvent.WebsiteUrl)
-			record.ResizeFrom = createDim(resizeEvent.OldHeight, resizeEvent.OldWidth)
-			record.ResizeTo = createDim(resizeEvent.NewHeight, resizeEvent.NewWidth)
+	for trackingEvent := range queue {
+			switch trackingEvent.EventType() {
+			case "resizeEvent":
+				resizeEvent := trackingEvent.(ResizeEvent)
+				record := getRecord(db, resizeEvent.SessionId, resizeEvent.WebsiteUrl)
+				record.ResizeFrom = createDim(resizeEvent.OldHeight, resizeEvent.OldWidth)
+				record.ResizeTo = createDim(resizeEvent.NewHeight, resizeEvent.NewWidth)
 
-			db[resizeEvent.SessionId] = *record
-			fmt.Println(record)
-		case "pasteEvent":
-			pasteEvent := trackingEvent.(CopyPasteEvent)
-			record := getRecord(db, pasteEvent.SessionId, pasteEvent.WebsiteUrl)
-			record.CopyAndPaste[pasteEvent.FormId] = pasteEvent.Pasted
+				db[resizeEvent.SessionId] = *record
+				fmt.Println("Record updated:")
+				fmt.Println(record)
+			case "pasteEvent":
+				pasteEvent := trackingEvent.(CopyPasteEvent)
+				record := getRecord(db, pasteEvent.SessionId, pasteEvent.WebsiteUrl)
+				record.CopyAndPaste[pasteEvent.FormId] = pasteEvent.Pasted
 
-			db[pasteEvent.SessionId] = *record
-			fmt.Println(record)
-		case "timerEvent":
-			timerEvent := trackingEvent.(TimerEvent)
-			record := getRecord(db, timerEvent.SessionId, timerEvent.WebsiteUrl)
-			record.FormCompletionTime = timerEvent.Time
+				db[pasteEvent.SessionId] = *record
+				fmt.Println("Record updated:")
+				fmt.Println(record)
+			case "timerEvent":
+				timerEvent := trackingEvent.(TimerEvent)
+				record := getRecord(db, timerEvent.SessionId, timerEvent.WebsiteUrl)
+				record.FormCompletionTime = timerEvent.Time
 
-			db[timerEvent.SessionId] = *record
-			fmt.Println(record)
+				db[timerEvent.SessionId] = *record
+				fmt.Println("Session complete:")
+				fmt.Println(record)
 		}
-	default:
 	}
 
 }
