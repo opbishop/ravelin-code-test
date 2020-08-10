@@ -2,21 +2,23 @@ Ravelin Code Test
 =================
 
 ## Summary
-We need an HTTP server that will accept any POST request (JSON) from multiple clients' websites. Each request forms part of a struct (for that particular visitor) that will be printed to the terminal when the struct is fully complete. 
+This repo contains a basic HTTP server written using the Go standard library which handles POST requests from 
+an HTML/vanilla Javascript UI.
 
-For the JS part of the test please feel free to use any libraries that may help you **but please only use the Go standard library for the backend**. Remember to keep things simple.
+The server accepts three types of request:
+* POST to /resize endpoint
+* POST to /copypaste endpoint
+* POST to /timer endpoint
 
-## Frontend (JS)
-Insert JavaScript into the index.html (supplied) that captures and posts data every time one of the below events happens; this means you will be posting multiple times per visitor. Assume only one resize occurs.
+As each request is received, a Data scruct stored in the db map is updated and printed to stdout.
 
-  - if the screen resizes, the before and after dimensions
-  - copy & paste (for each field)
-  - time taken from the 1st character typed to clicking the submit button
+![Code flow](flowchart.jpg)
+
 
 ### Example JSON Requests
 ```javascript
 {
-  "eventType": "copyAndPaste",
+  "eventType": "pasteEvent",
   "websiteUrl": "https://ravelin.com",
   "sessionId": "123123-123123-123123123",
   "pasted": true,
@@ -24,17 +26,37 @@ Insert JavaScript into the index.html (supplied) that captures and posts data ev
 }
 
 {
-  "eventType": "timeTaken",
-  "websiteUrl": "https://ravelin.com",
-  "sessionId": "123123-123123-123123123",
-  "time": 72, // seconds
+    "eventType": "resizeEvent",
+    "websiteUrl": "https://ravelin.com",
+    "sessionId": "123123-123123-123123123",
+    "oldWidth": "100",
+    "oldHeight": "100",
+    "newWidth": "200",
+    "newHeight": "200"
 }
 
-...
-
+{
+  "eventType": "timerEvent",
+  "websiteUrl": "https://ravelin.com",
+  "sessionId": "123123-123123-123123123",
+  "time": 72
+}
 ```
 
+## Frontend (JS)
+To run:
+Open index.html in browser (tested using Chrome version 84.0.4147.105)
+
+Uses listeners to wait for:
+1. Page resize
+2. Paste into any of the text fields
+3. Typing begin in any text field & button click
+
+When any of these events are triggered, the Javascript POSts the above data to the appropriate endpoint. 
+
 ## Backend (Go)
+To run:
+
 
 The Backend should:
 
