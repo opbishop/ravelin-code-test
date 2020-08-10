@@ -56,19 +56,26 @@ When any of these events are triggered, the Javascript POSts the above data to t
 
 ## Backend (Go)
 To run:
-
+```
+Navigate to /server dir and run:
+go build -o server
+./server
+```
+To run tests:
+```
+Navigate to /server dir and run:
+go test
+```
 
 The Backend should:
 
-1. Create a Server
-2. Accept POST requests in JSON format similar to those specified above
-3. Map the JSON requests to relevant sections of the data struct (specified below)
-4. Print the struct for each stage of its construction
-5. Also print the struct when it is complete (i.e. when the form submit button has been clicked)
+1. Creates an HTTP server running on localhost:10000
+2. Accepts POST requests in JSON format following the structure above
+3. Maps the JSON requests to relevant sections of the Data struct
+4. Prints the struct for each stage of its construction
+5. Also prints the struct when it is complete (i.e. when the form submit button has been clicked)
 
-We would like the server to be written to handle multiple requests arriving on
-the same session at the same time. We'd also like to see some tests.
-
+Concurrency is handled using the queue channel, which is consumed from a goroutine which updates the Data records.
 
 ### Go Struct
 ```go
@@ -86,6 +93,16 @@ type Dimension struct {
 	Height string
 }
 ```
+
+Additional data structures:
+
+* TrackingEvent - interface
+    * ResizeEvent
+    * CopyPasteEvent
+    * TimerEvent  
+    
+ResizeEvent, CopyPasteEvent & TimerEvent extend the TrackingEvent interface. 
+The TrackingEvent is used to refer to all types by the processEvent() goroutine & to pass all events on the same channel. 
 
 
 
