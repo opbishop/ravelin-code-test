@@ -36,6 +36,11 @@ func addCorsHeaders(w http.ResponseWriter) {
 
 }
 
+func addBadRequestHeader(w http.ResponseWriter, err error){
+	w.WriteHeader(http.StatusBadRequest)
+	w.Write([]byte(err.Error()))
+}
+
 func handleResizeEvent(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "OPTIONS" {
 		addCorsHeaders(w)
@@ -51,9 +56,7 @@ func handleResizeEvent(w http.ResponseWriter, r *http.Request) {
 	var event ResizeEvent
 	err := json.Unmarshal(reqBody, &event)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		return
+		addBadRequestHeader(w, err)
 	}
 
 	te := TrackingEvent(event)
@@ -72,15 +75,11 @@ func handleCopyPasteEvent(w http.ResponseWriter, r *http.Request) {
 	addCorsHeaders(w)
 
 	reqBody, _ := ioutil.ReadAll(r.Body)
-	fmt.Println("New copy-paste event")
-	//fmt.Println(string(reqBody))
 
 	var event CopyPasteEvent
 	err := json.Unmarshal(reqBody, &event)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		return
+		addBadRequestHeader(w, err)
 	}
 
 	te := TrackingEvent(event)
@@ -105,9 +104,7 @@ func handleTimerEvent(w http.ResponseWriter, r *http.Request) {
 	var event TimerEvent
 	err := json.Unmarshal(reqBody, &event)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		return
+		addBadRequestHeader(w, err)
 	}
 
 	te := TrackingEvent(event)
