@@ -139,9 +139,9 @@ func TestHandleResizeEvent(t *testing.T) {
 
 func TestProcessEvents(t *testing.T){
 	mockDb := make(map[string]Data)
-	mockQueue := make(chan TrackingEvent, 5)
+	mockQueue := make(chan TrackingEvent, 1)
 
-	defer close(mockQueue)
+
 
 	event := TimerEvent{
 		SessionId: "abc",
@@ -150,6 +150,7 @@ func TestProcessEvents(t *testing.T){
 
 	select {
 	case mockQueue <- event:
+		close(mockQueue)
 		processEvents(mockDb, mockQueue)
 	default:
 		t.Error("Test failed; unable to send event on mockQueue")
