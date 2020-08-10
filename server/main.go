@@ -10,13 +10,12 @@ import (
 
 // data structure to hold Data structs as they are completed
 // maps SessionId (string): Data struct object
-var db map[string]Data
-var c chan TrackingEvent
+var queue chan TrackingEvent
 
 func main() {
-	db = make(map[string]Data)
-	c = make(chan TrackingEvent, 10)
-	go processEvents()
+	db := make(map[string]Data)
+	queue = make(chan TrackingEvent, 10)
+	go processEvents(db, queue)
 	handleRequests()
 }
 
@@ -30,7 +29,7 @@ func handleRequests() {
 
 func addCorsHeaders(w http.ResponseWriter) {
 	header := w.Header()
-	// TODO don't push to production (obviously)
+	// TODO don't push to production with the allow-origin wildcard (obviously)
 	header.Add("Access-Control-Allow-Origin", "*")
 	header.Add("Access-Control-Allow-Methods", "POST, OPTIONS")
 	header.Add("Access-Control-Allow-Headers", "Content-Type")
@@ -59,7 +58,7 @@ func handleResizeEvent(w http.ResponseWriter, r *http.Request) {
 
 	te := TrackingEvent(event)
 	select {
-	case c <- te:
+	case queue <- te:
 	default:
 	}
 }
@@ -86,7 +85,7 @@ func handleCopyPasteEvent(w http.ResponseWriter, r *http.Request) {
 
 	te := TrackingEvent(event)
 	select {
-	case c <- te:
+	case queue <- te:
 	default:
 	}
 }
@@ -114,13 +113,13 @@ func handleTimerEvent(w http.ResponseWriter, r *http.Request) {
 	te := TrackingEvent(event)
 
 	select {
-	case c <- te:
+	case queue <- te:
 	default:
 	}
 
 }
 
-func getRecord(sessionId string, websiteUrl string) *Data {
+func getRecord(db map[string]Data, sessionId string, websiteUrl string) *Data {
 	if record, exist := db[sessionId]; exist {
 		return &record
 	} else {
@@ -137,14 +136,13 @@ func createDim(height string, width string) Dimension {
 
 // goroutine to process events from the channel
 // allows handling of multiple POST requests at once
-func processEvents() {
-	for range c {
-		trackingEvent := <-c
-
+func processEvents(db map[string]Data, queue chan TrackingEvent) {
+	select {
+	case trackingEvent := <- queue:
 		switch trackingEvent.EventType() {
 		case "resizeEvent":
 			resizeEvent := trackingEvent.(ResizeEvent)
-			record := getRecord(resizeEvent.SessionId, resizeEvent.WebsiteUrl)
+			record := getRecord(db, resizeEvent.SessionId, resizeEvent.WebsiteUrl)
 			record.ResizeFrom = createDim(resizeEvent.OldHeight, resizeEvent.OldWidth)
 			record.ResizeTo = createDim(resizeEvent.NewHeight, resizeEvent.NewWidth)
 
@@ -152,20 +150,20 @@ func processEvents() {
 			fmt.Println(record)
 		case "pasteEvent":
 			pasteEvent := trackingEvent.(CopyPasteEvent)
-			record := getRecord(pasteEvent.SessionId, pasteEvent.WebsiteUrl)
+			record := getRecord(db, pasteEvent.SessionId, pasteEvent.WebsiteUrl)
 			record.CopyAndPaste[pasteEvent.FormId] = pasteEvent.Pasted
 
 			db[pasteEvent.SessionId] = *record
 			fmt.Println(record)
 		case "timerEvent":
 			timerEvent := trackingEvent.(TimerEvent)
-			record := getRecord(timerEvent.SessionId, timerEvent.WebsiteUrl)
+			record := getRecord(db, timerEvent.SessionId, timerEvent.WebsiteUrl)
 			record.FormCompletionTime = timerEvent.Time
 
 			db[timerEvent.SessionId] = *record
 			fmt.Println(record)
 		}
-
+	default:
 	}
 
 }
