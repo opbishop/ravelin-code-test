@@ -30,7 +30,7 @@ function initialiseVars() {
 }
 
 function handleTyping(){
-    firstCharTyped = new Date().getSeconds();
+    firstCharTyped = new Date()
     console.log("typing started at " + firstCharTyped)
 
     document.querySelectorAll('.form-control').forEach(item => {
@@ -85,7 +85,15 @@ function submitButton(){
     console.log(firstCharTyped)
     console.log(new Date().getSeconds())
     console.log(new Date().getSeconds() - firstCharTyped)
-    let time = new Date().getSeconds() - firstCharTyped;
+
+    // if no chars have been typed (i.e. all values are pasted) just send time taken as 0 seconds
+    let time
+    if (firstCharTyped !== 0) {
+        time = Math.floor((new Date() - firstCharTyped) / 1000)
+    } else {
+        time = 0
+    }
+
     let content =
         {
             "eventType": "timer",
@@ -93,7 +101,6 @@ function submitButton(){
             "sessionId": sessionId,
             "time": time
         }
-    console.log(content)
 
     const url = serverAddr + content["eventType"]
     sendRequest(url, content)
